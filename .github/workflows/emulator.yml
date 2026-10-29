@@ -1,0 +1,35 @@
+name: emulator
+on:
+  workflow_dispatch:
+    inputs:
+      apk_url:  {description: "APK URL (x86_64 build required)", required: true}
+      script:   {description: "adb commands, one per line", required: true}
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: fetch apk
+        run: |
+          mkdir -p work && curl -sSL --retry 3 -o work/app.apk "${{ inputs.apk_url }}"
+      - name: write adb script
+        run: printf '%s\n' "${{ inputs.script }}" > work/adb.sh
+      - name: emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: |
+            adb install -r work/app.apk || (adb install -g work/app.apk)
+            adb logcat -c
+            bash work/adb.sh || true
+            adb logcat -d > work/logcat.txt
+            adb shell dumpsys activity broadcasts > work/broadcasts.txt || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: emulator-run
+          path: work/logcat.txt
+          retention-days: 14
