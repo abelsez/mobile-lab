@@ -1,0 +1,8 @@
+name: hello
+on:
+  workflow_dispatch:
+jobs:
+  hi:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "cloud lab online"; uname -a; python3 -V; java -version 2>&1 | head -2; free -m | head -2
